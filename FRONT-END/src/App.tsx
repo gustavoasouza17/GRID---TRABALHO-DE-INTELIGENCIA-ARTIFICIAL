@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 
 type CellType = 0 | 1 | 2 | 3 | 4
-type Method = 'BFS' | 'DFS' | 'ASTAR'
+type Method = 'BFS' | 'DFS' | 'PROF_LIMITADA' | 'APROF_ITERATIVO' | 'BIDIRECIONAL' | 'CUSTO_UNIFORME' | 'GREEDY' | 'ASTAR' | 'AIA_ESTRELA'
 
 const GRID_SIZE = 10
 
@@ -138,7 +138,13 @@ export default function App() {
           >
             <option value="BFS">Busca em Largura (BFS)</option>
             <option value="DFS">Busca em Profundidade (DFS)</option>
+            <option value="PROF_LIMITADA">Profundidade Limitada</option>
+            <option value="APROF_ITERATIVO">Aprofundamento Iterativo</option>
+            <option value="BIDIRECIONAL">Busca Bidirecional</option>
+            <option value="CUSTO_UNIFORME">Custo Uniforme</option>
+            <option value="GREEDY">Greedy</option>
             <option value="ASTAR">A* (A-Star)</option>
+            <option value="AIA_ESTRELA">AIA-Estrela</option>
           </select>
         </div>
 

@@ -75,17 +75,9 @@ def parse_coord(coord_str: str) -> Tuple[int, int]:
     return (int(parts[0]), int(parts[1]))
 
 
-@app.post("/resolver")
-def resolver(request: ResolverRequest):
-    origem = parse_coord(request.origem)
-    destino = parse_coord(request.destino)
-    metodo = request.metodo
-
-    nx = len(request.grid)
-    ny = len(request.grid[0]) if nx > 0 else 0
-
-    backend_map = frontend_grid_to_backend(request.grid)
-
+def executar_busca(metodo: str, origem: Tuple[int, int], destino: Tuple[int, int],
+                   nx: int, ny: int, backend_map: List[List[int]]):
+    """Executa o algoritmo de busca escolhido, usando o código padrão do professor."""
     caminho = None
     custo = 0
 
@@ -97,12 +89,50 @@ def resolver(request: ResolverRequest):
         resultado = buscaNP().profundidade_grid(origem, destino, nx, ny, backend_map)
         if resultado is not None:
             caminho = resultado
+    elif metodo == "PROF_LIMITADA":
+        resultado = buscaNP().prof_limitada_grid(origem, destino, nx, ny, backend_map, 3)
+        if resultado is not None:
+            caminho = resultado
+    elif metodo == "APROF_ITERATIVO":
+        resultado = buscaNP().aprof_iterativo_grid(origem, destino, nx, ny, backend_map, nx + ny)
+        if resultado is not None:
+            caminho = resultado
+    elif metodo == "BIDIRECIONAL":
+        resultado = buscaNP().bidirecional_grid(origem, destino, nx, ny, backend_map)
+        if resultado is not None:
+            caminho = resultado
+    elif metodo == "CUSTO_UNIFORME":
+        resultado = buscaP().custo_uniforme_grid(origem, destino, backend_map, nx, ny)
+        if resultado is not None:
+            caminho, custo = resultado
+    elif metodo == "GREEDY":
+        resultado = buscaP().greedy_grid(origem, destino, backend_map, nx, ny)
+        if resultado is not None:
+            caminho, custo = resultado
     elif metodo == "ASTAR":
         resultado = buscaP().a_estrela_grid(origem, destino, backend_map, nx, ny)
         if resultado is not None:
             caminho, custo = resultado
-    else:
-        return {"caminho": "Método desconhecido", "grid": request.grid}
+    elif metodo == "AIA_ESTRELA":
+        resultado = buscaP().aia_estrela_grid(origem, destino, backend_map, nx, ny)
+        if resultado is not None:
+            caminho, custo = resultado
+
+    return caminho, custo
+
+
+@app.post("/resolver")
+def resolver(request: ResolverRequest):
+    origem = parse_coord(request.origem)
+    destino = parse_coord(request.destino)
+    metodo = request.metodo
+
+    nx = len(request.grid)
+    ny = len(request.grid[0]) if nx > 0 else 0
+
+    backend_map = frontend_grid_to_backend(request.grid)
+
+    caminho, custo = executar_busca(metodo, origem, destino, nx, ny, backend_map)
 
     if caminho is None:
         grid_frontend = backend_grid_to_frontend(

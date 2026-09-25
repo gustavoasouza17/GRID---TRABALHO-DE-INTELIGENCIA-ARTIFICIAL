@@ -14,7 +14,10 @@ grid = [
     [0,0,0,0,0,0,0,0,0,0],
 ]
 
-for method in ["BFS", "DFS", "ASTAR"]:
+metodos = ["BFS", "DFS", "PROF_LIMITADA", "APROF_ITERATIVO", "BIDIRECIONAL",
+           "CUSTO_UNIFORME", "GREEDY", "ASTAR", "AIA_ESTRELA"]
+
+for method in metodos:
     body = {"origem": "0,0", "destino": "7,9", "metodo": method, "grid": grid}
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(

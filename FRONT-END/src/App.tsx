@@ -56,7 +56,7 @@ export default function App() {
   const handleExecutar = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/resolver', {
+      const response = await fetch('http://localhost:8001/resolver', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export default function App() {
       }
     } catch (error) {
       console.error('Erro ao resolver o labirinto:', error)
-      setPath('Erro ao conectar ao servidor. Certifique-se de que o backend está a correr em localhost:8000.')
+      setPath('Erro ao conectar ao servidor. Certifique-se de que o backend está a correr em localhost:8001.')
     } finally {
       setIsLoading(false)
     }

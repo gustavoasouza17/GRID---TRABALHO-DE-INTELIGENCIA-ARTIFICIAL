@@ -1,6 +1,12 @@
-# Backend - Labirinto IA
+# Backend — Labirinto IA
 
-API FastAPI para resolução de labirintos usando algoritmos de busca em grid.
+API FastAPI que expõe os algoritmos de busca em grid à interface web.
+
+Documentação completa em `../ReadMe.txt`.
+
+## Porta
+
+O servidor usa a porta **8001**.
 
 ## Requisitos
 
@@ -11,13 +17,15 @@ API FastAPI para resolução de labirintos usando algoritmos de busca em grid.
 
 ```bash
 cd BACKEND
-& "BACKEND\venv\Scripts\python.exe" -m uvicorn main:app --host 127.0.0.1 --port 8000
+& "venv\Scripts\uvicorn.exe" main:app --host 127.0.0.1 --port 8001
 ```
 
-Ou usar o venv existente:
+Ou usando o Python do venv:
 ```bash
-& "BACKEND\venv\Scripts\uvicorn.exe" main:app --host 127.0.0.1 --port 8000
+& "venv\Scripts\python.exe" -m uvicorn main:app --host 127.0.0.1 --port 8001
 ```
+
+Confirmar que está a correr: abrir `http://localhost:8001` no navegador.
 
 ## Endpoints
 
@@ -38,23 +46,44 @@ Recebe configuração do labirinto e retorna o caminho encontrado.
 **Campos:**
 - `origem`: coordenada X,Y do nó inicial
 - `destino`: coordenada X,Y do nó objetivo
-- `metodo`: `"BFS"` (Largura), `"DFS"` (Profundidade), `"ASTAR"` (A-Star)
+- `metodo`: sigla do algoritmo (ver tabela abaixo)
 - `grid`: array 10x10 — 0=livre, 1=parede
 
 **Resposta:**
 ```json
 {
-  "caminho": "(0,0) -> (0,1) -> ... | Custo: X | Nós: Y",
+  "caminho": "(0,0) -> (0,1) -> ... | Custo: X | Nos: Y",
   "grid": [[0,0,...], ...]
 }
 ```
 
+**Métodos aceites:**
+
+| Sigla | Algoritmo | Classe | Ficheiro |
+|---|---|---|---|
+| `BFS` | Busca em Largura | `buscaNP` | `buscaNP.py` |
+| `DFS` | Busca em Profundidade | `buscaNP` | `buscaNP.py` |
+| `PROF_LIMITADA` | Profundidade Limitada | `buscaNP` | `buscaNP.py` |
+| `APROF_ITERATIVO` | Aprofundamento Iterativo | `buscaNP` | `buscaNP.py` |
+| `BIDIRECIONAL` | Busca Bidirecional | `buscaNP` | `buscaNP.py` |
+| `CUSTO_UNIFORME` | Custo Uniforme | `buscaP` | `BuscaP.py` |
+| `GREEDY` | Greedy | `buscaP` | `BuscaP.py` |
+| `ASTAR` | A* (A-Star) | `buscaP` | `BuscaP.py` |
+| `AIA_ESTRELA` | AIA-Estrela | `buscaP` | `BuscaP.py` |
+
+### GET /
+
+Diagnóstico. Confirma que a API está viva e lista os métodos disponíveis.
+
 ## Estrutura
 
-- `main.py` — API FastAPI
-- `Programas-20260922/` — Código original de algoritmos de grid (sem modificações)
-  - `buscaNP.py` — BFS, DFS, DFS limitada, IDA*, Bidirecional (grid)
-  - `BuscaP.py` — Custo Uniforme, Greedy, A*, IDA* (grid)
-  - `utils.py` — Utilidades de grid
-  - `Node.py`, `NodeP.py` — Classes de nós
-  - `mapa3.txt` — Mapa de exemplo (grid)
+Ficheiros de código original (não modificados):
+- `buscaNP.py` — algoritmos sem pesos
+- `BuscaP.py` — algoritmos com pesos
+- `Node.py`, `NodeP.py` — classes de nós
+- `utils.py` — utilitários
+- `principalBuscaSemPesos.py`, `principalBuscaComPesos.py` — scripts de consola
+
+Ficheiro do projecto:
+- `main.py` — API FastAPI que liga o código original à interface
+- `test_api.py` — script de teste dos 9 métodos

@@ -1,7 +1,11 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "Programas-20260922"))
+# A pasta Algorithms contem o codigo original fornecido. Nao e modificado.
+ALG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Algorithms")
+if os.path.isdir(ALG_DIR):
+    sys.path.insert(0, ALG_DIR)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,17 +32,14 @@ class ResolverRequest(BaseModel):
     grid: List[List[int]]
 
 
+# ---------------------------------------------------------------------------
+# TRADUCAO DE FORMATO
+# A interface usa 1 = parede. O codigo do professor usa 9 = parede.
+# Estas duas funcoes sao a unica ponte entre os dois formatos.
+# ---------------------------------------------------------------------------
+
 def frontend_grid_to_backend(grid: List[List[int]]) -> List[List[int]]:
-    backend_map = []
-    for row in grid:
-        backend_row = []
-        for cell in row:
-            if cell == 1:
-                backend_row.append(9)
-            else:
-                backend_row.append(0)
-        backend_map.append(backend_row)
-    return backend_map
+    return [[9 if cell == 1 else 0 for cell in row] for row in grid]
 
 
 def backend_grid_to_frontend(
@@ -71,36 +72,42 @@ def backend_grid_to_frontend(
 
 
 def parse_coord(coord_str: str) -> Tuple[int, int]:
-    parts = coord_str.split(",")
+    parts = coord_str.replace(" ", "").split(",")
+    if len(parts) < 2:
+        raise ValueError("Coordenada invalida. Use o formato X,Y (exemplo: 0,0)")
     return (int(parts[0]), int(parts[1]))
 
 
+def validate_coord(coord: Tuple[int, int], nx: int, ny: int, mapa: List[List[int]]):
+    """O codigo do professor valida a origem e o destino antes de buscar."""
+    x, y = coord
+    if not (0 <= x < nx and 0 <= y < ny):
+        raise ValueError(f"Coordenada ({x},{y}) fora do grid {nx}x{ny}")
+    if mapa[x][y] != 0:
+        raise ValueError(f"Coordenada ({x},{y}) e uma parede. Escolha uma celula livre.")
+
+
+# ---------------------------------------------------------------------------
+# SELECTOR DE METODOS
+# Traduz a sigla do frontend para a chamada correspondente no codigo do
+# professor. A logica dos algoritmos NAO e alterada.
+# ---------------------------------------------------------------------------
+
 def executar_busca(metodo: str, origem: Tuple[int, int], destino: Tuple[int, int],
                    nx: int, ny: int, backend_map: List[List[int]]):
-    """Executa o algoritmo de busca escolhido, usando o código padrão do professor."""
     caminho = None
     custo = 0
 
     if metodo == "BFS":
-        resultado = buscaNP().amplitude_grid(origem, destino, nx, ny, backend_map)
-        if resultado is not None:
-            caminho = resultado
+        caminho = buscaNP().amplitude_grid(origem, destino, nx, ny, backend_map)
     elif metodo == "DFS":
-        resultado = buscaNP().profundidade_grid(origem, destino, nx, ny, backend_map)
-        if resultado is not None:
-            caminho = resultado
+        caminho = buscaNP().profundidade_grid(origem, destino, nx, ny, backend_map)
     elif metodo == "PROF_LIMITADA":
-        resultado = buscaNP().prof_limitada_grid(origem, destino, nx, ny, backend_map, 3)
-        if resultado is not None:
-            caminho = resultado
+        caminho = buscaNP().prof_limitada_grid(origem, destino, nx, ny, backend_map, 3)
     elif metodo == "APROF_ITERATIVO":
-        resultado = buscaNP().aprof_iterativo_grid(origem, destino, nx, ny, backend_map, nx + ny)
-        if resultado is not None:
-            caminho = resultado
+        caminho = buscaNP().aprof_iterativo_grid(origem, destino, nx, ny, backend_map, nx + ny)
     elif metodo == "BIDIRECIONAL":
-        resultado = buscaNP().bidirecional_grid(origem, destino, nx, ny, backend_map)
-        if resultado is not None:
-            caminho = resultado
+        caminho = buscaNP().bidirecional_grid(origem, destino, nx, ny, backend_map)
     elif metodo == "CUSTO_UNIFORME":
         resultado = buscaP().custo_uniforme_grid(origem, destino, backend_map, nx, ny)
         if resultado is not None:
@@ -117,41 +124,64 @@ def executar_busca(metodo: str, origem: Tuple[int, int], destino: Tuple[int, int
         resultado = buscaP().aia_estrela_grid(origem, destino, backend_map, nx, ny)
         if resultado is not None:
             caminho, custo = resultado
+    else:
+        raise ValueError(f"Metodo desconhecido: {metodo}")
 
     return caminho, custo
 
 
+# ---------------------------------------------------------------------------
+# ENDPOINT
+# ---------------------------------------------------------------------------
+
 @app.post("/resolver")
 def resolver(request: ResolverRequest):
-    origem = parse_coord(request.origem)
-    destino = parse_coord(request.destino)
-    metodo = request.metodo
+    if not request.grid or not request.grid[0]:
+        return {"caminho": "Grid vazio", "grid": request.grid}
 
     nx = len(request.grid)
-    ny = len(request.grid[0]) if nx > 0 else 0
+    ny = len(request.grid[0])
+
+    try:
+        origem = parse_coord(request.origem)
+        destino = parse_coord(request.destino)
+    except ValueError as e:
+        return {"caminho": f"Erro: {e}", "grid": request.grid}
 
     backend_map = frontend_grid_to_backend(request.grid)
 
-    caminho, custo = executar_busca(metodo, origem, destino, nx, ny, backend_map)
+    # Mesma validacao usada nos scripts de consola do professor.
+    try:
+        validate_coord(origem, nx, ny, backend_map)
+        validate_coord(destino, nx, ny, backend_map)
+    except ValueError as e:
+        return {"caminho": f"Erro: {e}", "grid": request.grid}
+
+    try:
+        caminho, custo = executar_busca(request.metodo, origem, destino, nx, ny, backend_map)
+    except ValueError as e:
+        return {"caminho": f"Erro: {e}", "grid": request.grid}
 
     if caminho is None:
-        grid_frontend = backend_grid_to_frontend(
-            backend_map, None, origem, destino
-        )
-        return {"caminho": "Caminho não encontrado", "grid": grid_frontend}
+        grid_frontend = backend_grid_to_frontend(backend_map, None, origem, destino)
+        return {"caminho": "Caminho nao encontrado", "grid": grid_frontend}
 
-    grid_frontend = backend_grid_to_frontend(
-        backend_map, caminho, origem, destino
-    )
-
+    grid_frontend = backend_grid_to_frontend(backend_map, caminho, origem, destino)
     caminho_str = " -> ".join([f"({x},{y})" for x, y in caminho])
 
     return {
-        "caminho": f"{caminho_str} | Custo: {custo} | Nós: {len(caminho)}",
+        "caminho": f"{caminho_str} | Custo: {custo} | Nos: {len(caminho)}",
         "grid": grid_frontend,
     }
 
 
 @app.get("/")
 def root():
-    return {"status": "Labirinto IA API", "endpoints": ["/resolver (POST)"]}
+    return {
+        "status": "Labirinto IA API",
+        "metodos": [
+            "BFS", "DFS", "PROF_LIMITADA", "APROF_ITERATIVO", "BIDIRECIONAL",
+            "CUSTO_UNIFORME", "GREEDY", "ASTAR", "AIA_ESTRELA",
+        ],
+        "endpoints": ["/resolver (POST)"],
+    }
